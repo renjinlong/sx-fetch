@@ -31,7 +31,7 @@
 
 import axios from 'axios';
 import './utils/promise-extends'; // 扩展了 done 和 finally 方法
-import {mosaicUrl} from './utils/url-utils';
+import { mosaicUrl } from './utils/url-utils';
 import fetchInject from './fetchDecorator';
 
 export default class SxFetch {
@@ -71,16 +71,22 @@ export default class SxFetch {
         return instance;
     }
 
-    _onShowErrorTip() {}
+    _onShowErrorTip() { }
 
-    _onShowSuccessTip() {}
+    _onShowSuccessTip() { }
 
-    _isMock() {}
+    _isMock() { }
 
     static _setOptions(axiosInstance) {
         axiosInstance.defaults.timeout = 10000;
         axiosInstance.defaults.headers.post['Content-Type'] = 'application/x-www-form-urlencoded;charset=UTF-8';
         axiosInstance.defaults.baseURL = '/';
+
+        axiosInstance.defaults.retry = 2;
+        axiosInstance.defaults.retryDelay = 1000;
+
+        
+
         // Add a request interceptor
         axiosInstance.interceptors.request.use(cfg => {
             // Do something before request is sent
@@ -94,10 +100,66 @@ export default class SxFetch {
         axiosInstance.interceptors.response.use(response => {
             // Do something with response data
             return response;
-        }, error => {
+        }, err => {
             // Do something with response error
-            return Promise.reject(error);
+            // return Promise.reject(error);
+            var config = err.config;
+            // If config does not exist or the retry option is not set, reject
+            if (!config || !config.retry) return Promise.reject(err);
+
+            // Set the variable for keeping track of the retry count
+            config.__retryCount = config.__retryCount || 0;
+
+            // Check if we've maxed out the total number of retries
+            if (config.__retryCount >= config.retry) {
+                // Reject with the error
+                return Promise.reject(err);
+            }
+
+            // Increase the retry count
+            config.__retryCount += 1;
+
+            // Create new promise to handle exponential backoff
+            var backoff = new Promise(function (resolve) {
+                setTimeout(function () {
+                    resolve();
+                }, config.retryDelay || 1);
+            });
+
+            // Return the promise in which recalls axios to retry the request
+            return backoff.then(function () {
+                return axiosInstance(config);
+            });
         });
+        // axiosInstance.interceptors.response.use(function axiosRetryInterceptor(err) {
+        //     var config = err.config;
+        //     // If config does not exist or the retry option is not set, reject
+        //     if (!config || !config.retry) return Promise.reject(err);
+
+        //     // Set the variable for keeping track of the retry count
+        //     config.__retryCount = config.__retryCount || 0;
+
+        //     // Check if we've maxed out the total number of retries
+        //     if (config.__retryCount >= config.retry) {
+        //         // Reject with the error
+        //         return Promise.reject(err);
+        //     }
+
+        //     // Increase the retry count
+        //     config.__retryCount += 1;
+
+        //     // Create new promise to handle exponential backoff
+        //     var backoff = new Promise(function (resolve) {
+        //         setTimeout(function () {
+        //             resolve();
+        //         }, config.retryDelay || 1);
+        //     });
+
+        //     // Return the promise in which recalls axios to retry the request
+        //     return backoff.then(function () {
+        //         return axiosInstance(config);
+        //     });
+        // });
     }
 
     /**
@@ -109,12 +171,12 @@ export default class SxFetch {
      * @param {function} isMock isMock(url, data, method, options){...} 判断请求是否为mock请求
      */
     init({
-        setOptions = (/* instance, isMock */) => {},
-        onShowErrorTip = (/* err, errorTip */) => {},
-        onShowSuccessTip = (/* response, successTip */) => {},
-        isMock = (/* url, data, method, options */) => {},
+        setOptions = (instance, isMock) => { },
+        onShowErrorTip = (err, errorTip) => { },
+        onShowSuccessTip = (response, successTip) => { },
+        isMock = (url, data, method, options) => { },
         headers = {},
-        ...otherOptions,
+        ...otherOptions
     }) {
         setOptions(this.axiosInstance);
         setOptions(this.mockInstance, true); // isMock
@@ -136,7 +198,7 @@ export default class SxFetch {
     }
 
     fetch(url, data, method = 'get', options = {}) {
-        let {successTip = false, errorTip = method === 'get' ? '获取数据失败！' : '操作失败！'} = options;
+        let { successTip = false, errorTip = method === 'get' ? '获取数据失败！' : '操作失败！' } = options;
         const CancelToken = axios.CancelToken;
         let cancel;
         const isGet = method === 'get';
