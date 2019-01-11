@@ -82,10 +82,8 @@ export default class SxFetch {
         axiosInstance.defaults.headers.post['Content-Type'] = 'application/x-www-form-urlencoded;charset=UTF-8';
         axiosInstance.defaults.baseURL = '/';
 
-        axiosInstance.defaults.retry = 2;
-        axiosInstance.defaults.retryDelay = 1000;
-
-        
+        // axiosInstance.defaults.retry = 2;
+        // axiosInstance.defaults.retryDelay = 1000;
 
         // Add a request interceptor
         axiosInstance.interceptors.request.use(cfg => {
@@ -102,34 +100,35 @@ export default class SxFetch {
             return response;
         }, err => {
             // Do something with response error
-            // return Promise.reject(error);
-            var config = err.config;
-            // If config does not exist or the retry option is not set, reject
-            if (!config || !config.retry) return Promise.reject(err);
+            return Promise.reject(err);
 
-            // Set the variable for keeping track of the retry count
-            config.__retryCount = config.__retryCount || 0;
+            // var config = err.config;
+            // // If config does not exist or the retry option is not set, reject
+            // if (!config || !config.retry) return Promise.reject(err);
 
-            // Check if we've maxed out the total number of retries
-            if (config.__retryCount >= config.retry) {
-                // Reject with the error
-                return Promise.reject(err);
-            }
+            // // Set the variable for keeping track of the retry count
+            // config.__retryCount = config.__retryCount || 0;
 
-            // Increase the retry count
-            config.__retryCount += 1;
+            // // Check if we've maxed out the total number of retries
+            // if (config.__retryCount >= config.retry) {
+            //     // Reject with the error
+            //     return Promise.reject(err);
+            // }
 
-            // Create new promise to handle exponential backoff
-            var backoff = new Promise(function (resolve) {
-                setTimeout(function () {
-                    resolve();
-                }, config.retryDelay || 1);
-            });
+            // // Increase the retry count
+            // config.__retryCount += 1;
 
-            // Return the promise in which recalls axios to retry the request
-            return backoff.then(function () {
-                return axiosInstance(config);
-            });
+            // // Create new promise to handle exponential backoff
+            // var backoff = new Promise(function (resolve) {
+            //     setTimeout(function () {
+            //         resolve();
+            //     }, config.retryDelay || 1);
+            // });
+
+            // // Return the promise in which recalls axios to retry the request
+            // return backoff.then(function () {
+            //     return axiosInstance(config);
+            // });
         });
         // axiosInstance.interceptors.response.use(function axiosRetryInterceptor(err) {
         //     var config = err.config;
