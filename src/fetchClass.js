@@ -206,6 +206,7 @@ export default class SxFetch {
 
         if (isGet && !isMock) {
             url = mosaicUrl(url, data);
+            data = null;
         }
         if (isMock) {
             axiosInstance = this.mockInstance;

@@ -1,6 +1,6 @@
 {
   "name": "sx-fetch-rjl",
-  "version": "9.0.7",
+  "version": "9.0.9",
   "description": "基于 axios 的网络请求库",
   "main": "./dist/index.js",
   "scripts": {
